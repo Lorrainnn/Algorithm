@@ -1,7 +1,7 @@
 # Import each one of your sorting algorithms below as follows:
 # Feel free to comment out these lines before your algorithms are implemented.
 from insertion_sort import insertion_sort
-from tim_sort import tim_sort
+#from tim_sort import tim_sort
 #from shell_sort1 import shell_sort1
 #from shell_sort2 import shell_sort2
 #from shell_sort3 import shell_sort3
@@ -20,5 +20,3 @@ from tim_sort import tim_sort
 #   you may choose to implement them in a single file, and import them as follows:
 # from shell_sort import shell_sort1, shell_sort2, shell_sort3, shell_sort4, shell_sort5
 
-insertion_sort()
-tim_sort()
