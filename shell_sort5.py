@@ -1,0 +1,1 @@
+#The A003462 sequence, in reverse order, starting from the largest value less than n, down to 1.

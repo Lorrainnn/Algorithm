@@ -31,24 +31,26 @@ def tim_sort(nums: list[int]):
             runs.append(run)
         return runs
     
+
     def merge(left, right):
-        merged = []
+        merged_list = []
         i = j = 0
         while i < len(left) and j < len(right):
             if left[i] < right[j]:
-                merged.append(left[i])
+                merged_list.append(left[i])
                 i += 1
             else:
-                merged.append(right[j])
+                merged_list.append(right[j])
                 j += 1
 
         #append resulting lists
-        merged.extend(left[i:])
-        merged.extend(right[j:])
-        return merged
+        merged_list.extend(left[i:])
+        merged_list.extend(right[j:])
+        return merged_list
 
-    
+    #run decompositions
     runs = extract_runs(nums)
+    #initialize empty stack
     R = []
     i = 0
     #based on lecture ppt: it pushes the first run onto a stack, and 
