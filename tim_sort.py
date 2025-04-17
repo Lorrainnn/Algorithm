@@ -1,10 +1,36 @@
-
-from insertion_sort import insertion_sort
 def tim_sort(nums: list[int]):
 
-    MIN_RUN = 32
+    #for separate into runs
+    def extract_runs(nums: list[int]):
+        runs = []
+        i = 0
+        n = len(nums)
 
+        while i < n:
+            run_start = i
+            i += 1
+            #check limit ->last 2
+            if i == n:
+                runs.append(nums[run_start:i])
+                break
 
+            increase = nums[i] >= nums[i - 1]
+
+            while i < n and (
+                #ascending
+                (increase and nums[i] >= nums[i - 1]) or
+                #descending
+                (not increase and nums[i] <= nums[i - 1])
+            ):
+                i += 1
+            #find one run
+            run = nums[run_start:i]
+            if not increase:
+                run.reverse()
+
+            runs.append(run)
+        return runs
+    
     def merge(left, right):
         merged = []
         i = j = 0
@@ -15,31 +41,45 @@ def tim_sort(nums: list[int]):
             else:
                 merged.append(right[j])
                 j += 1
+
+        #append resulting lists
         merged.extend(left[i:])
         merged.extend(right[j:])
         return merged
 
-    n = len(nums)
-    runs = []
-
-    # Step 1: Break the array into runs and sort them with insertion sort
+    
+    runs = extract_runs(nums)
+    R = []
     i = 0
-    while i < n:
-        run_end = min(i + MIN_RUN - 1, n - 1)
-        insertion_sort(nums, i, run_end)
-        runs.append((i, run_end))
-        i = run_end + 1
+    #based on lecture ppt: it pushes the first run onto a stack, and 
+    #starts processing runs left to right, pushing 
+    #each new run onto the stac
+    while i<len(runs):
+        R.append(runs[i])
+        i+=1
+        while True:
+            if len(R)>=3 and len(R[-1])>len(R[-3]):
+                R[-2] = merge(R[-2],R[-3])
+                del R[-3]   
+            elif len(R)>=2 and len(R[-1])>=len(R[-2]):
+                R[-2] = merge(R[-1],R[-2])
+                R.pop()
+            elif len(R)>=3 and len(R[-1])+len(R[-2])>=len(R[-3]):
+                R[-2] = merge(R[-1],R[-2])
+                R.pop()
+            elif len(R)>=4 and len(R[-2])+len(R[-3])>=len(R[-4]):
+                R[-2] = merge(R[-1],R[-2])
+                R.pop()
+            else:
+                break
 
-    # Step 2: Merge runs on stack (simulate the merging rules in your image)
-    size = MIN_RUN
-    while size < n:
-        for start in range(0, n, size * 2):
-            mid = min(n - 1, start + size - 1)
-            end = min(n - 1, start + size * 2 - 1)
-            if mid < end:
-                merged = merge(nums[start:mid + 1], nums[mid + 1:end + 1])
-                nums[start:start + len(merged)] = merged
-        size *= 2
+    while len(R)!= 1:
+        R[-2] = merge(R[-1],R[-2])
+        R.pop()
+    
+    nums[:] = R.pop()
 
-    return nums
-
+if __name__=="__main__":
+    nums = [1,3,5,10,5,2,90,100,34]
+    tim_sort(nums)
+    print(nums)
