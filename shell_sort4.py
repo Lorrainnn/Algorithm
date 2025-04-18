@@ -1,7 +1,7 @@
 from shell_sort_common import common
 
 #if n=100-> it would be [96, 64, 48, 36, 32, 27, 24, 18, 16, 12, 9, 8, 6, 4, 3, 2, 1]
-#The A003586 sequence, 2p3q, ordered from the largest such number less than n down to 1.
+#The A003586 sequence, 2^p*3^q, ordered from the largest such number less than n down to 1.
 def shell_sort4(nums: list[int]):
     n = len(nums)
     gaps = set()
@@ -13,8 +13,9 @@ def shell_sort4(nums: list[int]):
             gaps.add((2 ** p) * (3 ** q))
             q+=1
         p+=1
-    sorted(gaps)
-
+        
+    gaps = sorted(gaps, reverse=True)
+   
     # boundry check if without gap = 1
     if 1 not in gaps:
         gaps.add(1)

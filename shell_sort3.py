@@ -1,7 +1,8 @@
 import math
 from shell_sort_common import common
 
-#The A083318 sequence, 2^k + 1, for k=log n, ..., 3, 2, 1, plus the value 1.
+#The A083318 sequence, 2^k + 1, 
+# for k=log n, ..., 3, 2, 1, plus the value 1.
 def shell_sort3(nums: list[int]):
     n = len(nums)
     k = int(math.log2(n))

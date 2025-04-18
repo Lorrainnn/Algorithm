@@ -1,6 +1,7 @@
 from shell_sort_common import common
 
-# The original Shell sequence: floor(n / 2^k), ..., 1
+#  The original Shell sequence, [n/2^k ], ..., 1, for k=1,2,...,log n, 
+#  where [*] denotes the floor function.
 def shell_sort1(nums: list[int]):
     n = len(nums)
     gap = n // 2
