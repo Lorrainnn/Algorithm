@@ -13,11 +13,12 @@ def shell_sort4(nums: list[int]):
             gaps.add((2 ** p) * (3 ** q))
             q+=1
         p+=1
-        
-    gaps = sorted(gaps, reverse=True)
-   
+    
     # boundry check if without gap = 1
     gaps.add(1)
+    
+    gaps = sorted(gaps, reverse=True)
+   
 
     common(gaps,nums)
 

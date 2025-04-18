@@ -4,20 +4,19 @@ from shell_sort_common import common
 # in reverse order, starting from the largest value less than n, down to 1.
 def shell_sort5(nums: list[int]):
     n = len(nums)
-    gaps = []
+    gaps = set()
     
     k = 1
     gap = (3 ** k - 1) // 2
     while gap < n:
-        gaps.append(gap)
+        gaps.add(gap)
         k += 1
         gap = (3 ** k - 1) // 2
-
-    gaps.sort(reverse=True)
     
     # boundry check if without gap = 1
-    if 1 not in gaps:
-        gaps.append(1)
+    gaps.add(1)
+
+    gaps = sorted(gaps, reverse=True)
 
     common(gaps,nums)
 
