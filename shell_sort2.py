@@ -5,18 +5,17 @@ from shell_sort_common import common
 def shell_sort2(nums: list[int]):
     n = len(nums)
     k=1
-    gaps = []
+    gaps = set()
 
     #all gaps
     while k <= int(math.log2(n)):
         gap = 2 * (n // (2 ** (k + 1))) + 1
         if gap < n:
-            gaps.append(gap)
+            gaps.add(gap)
         k += 1
 
     # boundry check if without gap = 1
-    if 1 not in gaps:
-        gaps.append(1)
+    gaps.add(1)
 
     common(gaps,nums)
 

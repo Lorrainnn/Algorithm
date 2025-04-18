@@ -17,8 +17,7 @@ def shell_sort4(nums: list[int]):
     gaps = sorted(gaps, reverse=True)
    
     # boundry check if without gap = 1
-    if 1 not in gaps:
-        gaps.add(1)
+    gaps.add(1)
 
     common(gaps,nums)
 

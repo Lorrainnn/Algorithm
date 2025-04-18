@@ -12,10 +12,6 @@ def shell_sort1(nums: list[int]):
         gaps.append(gap)
         gap //= 2
 
-    # boundry check if without gap = 1
-    if 1 not in gaps:
-        gaps.append(1)
-
     common(gaps,nums)
 
 

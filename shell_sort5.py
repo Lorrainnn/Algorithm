@@ -14,6 +14,10 @@ def shell_sort5(nums: list[int]):
         gap = (3 ** k - 1) // 2
 
     gaps.sort(reverse=True)
+    
+    # boundry check if without gap = 1
+    if 1 not in gaps:
+        gaps.append(1)
 
     common(gaps,nums)
 
