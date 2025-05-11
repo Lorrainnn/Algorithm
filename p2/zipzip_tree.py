@@ -17,7 +17,8 @@ class Rank:
     geometric_rank: int
     uniform_rank: int
 
-class ZipZipTree(Generic[KeyType, ValType]):
+
+class ZipZipTree:
     class _Node:
         def __init__(self, key: KeyType, val: ValType, rank: Rank):
             self.key = key
@@ -25,7 +26,7 @@ class ZipZipTree(Generic[KeyType, ValType]):
             self.rank = rank
             self.left: Optional[ZipZipTree._Node] = None
             self.right: Optional[ZipZipTree._Node] = None
-
+        
     def __init__(self, capacity: int):
         self.root: Optional[ZipZipTree._Node] = None
         self._size = 0
