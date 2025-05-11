@@ -3,22 +3,18 @@
 # explanations for member functions are provided in requirements.py
 
 def next_fit(items: list[float], assignment: list[int], free_space: list[float]):
-    current_bin = -1
-    current_free_space = 0.0
+	bin_capacity = 1.0
+	index = 0
+	free_space.append(bin_capacity)
 
-    for i, size in enumerate(items):
-        # new bin
-        if current_bin < 0 or size > current_free_space:
-            current_bin += 1
-            assignment[i] = current_bin
-        
-            free_space.append(1.0 - size)
-            current_free_space = free_space[current_bin]
-        else:
-            #use existing olf bin
-            assignment[i] = current_bin
-            free_space[current_bin] -= size
-            current_free_space = free_space[current_bin]
+	for i,item in enumerate(items):
+		if free_space[index] >= item - 1e-12:
+			assignment[i] = index
+			free_space[index] -= item
+		else:
+			index += 1
+			free_space.append(bin_capacity - item)
+			assignment[i] = index
 
 
 

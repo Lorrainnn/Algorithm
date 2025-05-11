@@ -1,106 +1,110 @@
 from dataclasses import dataclass
-from typing import Optional
 from zipzip_tree import ZipZipTree, Node, Rank, KeyType
-from decimal import Decimal, getcontext
+from decimal import Decimal
 
 
 @dataclass
-class BFVal:
-    remaining_capacity: Decimal
-    best_remaining_capacity: Decimal
+class BestFit_Val:
+    remain_c: Decimal
+    best_remain_c: Decimal
 
 
-class ZipZipTreeBF(ZipZipTree):
+class ZipZipTree_BestFit(ZipZipTree):
     def __init__(self, capacity: int):
         super().__init__(capacity)
-        getcontext().prec = 6
-
-    def update_node(self, node: Node):
-        best_on_left_side = node.left.val.best_remaining_capacity if node.left else Decimal(0)
-        best_on_right_side = node.right.val.best_remaining_capacity if node.right else Decimal(0)
-        myself = node.val.remaining_capacity
-
-        node.val.best_remaining_capacity = max(myself, best_on_left_side, best_on_right_side)
     
-    def insert(self, key: KeyType, val: BFVal, rank: Rank = None):
+    def insert(self, key: KeyType, val: BestFit_Val, rank: Rank = None):
         super().insert(key, val, rank)
         self.update_tree(key)
 
-    def update_tree(self, key: KeyType):
-        current = self.root
-        stack = []
+    #follow same logic in first fit
+    def update_node(self_remain, node: Node):
+        #get best from left child or 0 if missing
+        if node.left:
+            best_left = node.left.val.best_remain_c 
+        else:
+            best_left = 0
 
-        while current is not None:
-            stack.append(current)
-            if key < current.key:
-                current = current.left
-            elif key > current.key:
-                current = current.right
+        if node.right:
+            best_right = node.right.val.best_remain_c 
+        else:
+            best_right = 0
+            
+        self_remain = node.val.remain_c
+
+        node.val.best_remain_c = max(self_remain, best_left, best_right)
+    
+
+    
+    def update_tree(self, key: KeyType):
+        cur = self.root
+        path_stack = []
+        #recheck: ok
+        while cur is not None:
+            path_stack.append(cur)
+            if key < cur.key:
+                cur = cur.left
+            elif key > cur.key:
+                cur = cur.right
             else:
                 break
         
-        while stack:
-            node = stack.pop()
+        while path_stack:
+            node = path_stack.pop()
             self.update_node(node)
     
-    def find_best_fit(self, item_size: Decimal) -> Optional[Node]:
+    #recheck: use queue or stack: ok
+    def find_best_fit(self, item_size: Decimal) -> Node:
         best_fit = None
-        best_fit_capacity = Decimal('Infinity')
-        stack = [self.root]
+        #best fit definition
+        best_cap = Decimal('Infinity')
+        path_stack = [self.root]
 
-        while stack:
-            current = stack.pop()
-            if current:
-                if current.val.remaining_capacity >= item_size:
-                    if current.val.remaining_capacity < best_fit_capacity:
-                        best_fit = current
-                        best_fit_capacity = current.val.remaining_capacity
+        while path_stack:
+            cur = path_stack.pop()
+            if cur:
+                if cur.val.remain_c >= item_size and cur.val.remain_c < best_cap:
+                    best_fit = cur
+                    best_cap = cur.val.remain_c
 
-                if current.left and current.left.val.best_remaining_capacity >= item_size:
-                    stack.append(current.left)
+                # push children that might fit
+                if cur.left and cur.left.val.best_remain_c >= item_size:
+                    path_stack.append(cur.left)
 
-                if current.right and current.right.val.best_remaining_capacity >= item_size:
-                    stack.append(current.right)
+                if cur.right and cur.right.val.best_remain_c >= item_size:
+                    path_stack.append(cur.right)
 
         return best_fit
 
 
-from typing import List
-from decimal import Decimal, getcontext
 
-
-def best_fit(items: List[float], assignment: List[int], free_space: List[float]):
-    # items = hybrid_sort_desc(items)
-    getcontext().prec = 6
-    bin_tree = ZipZipTreeBF(len(items))
+def best_fit(items: list[float], assignment: list[int], free_space: list[float]):
+    bin_tree = ZipZipTree_BestFit(len(items))
     bin_capacity = Decimal(1.0)
-    bin_index = 0 
+    index = 0 
 
     for i, item in enumerate(items):
-        # bin_tree.print_tree()
-        # print(assignment)
         item = Decimal(str(item))
+        # find best-fitting bin
         best_bin = bin_tree.find_best_fit(item)
 
         if best_bin is None:
-            new_bin_val = BFVal(remaining_capacity=bin_capacity - item, best_remaining_capacity=bin_capacity - item)
-            bin_tree.insert(bin_index, new_bin_val, bin_tree.get_random_rank())
-            assignment[i] = bin_index
+            # no fit -> open a new bin
+            new_bin_val = BestFit_Val(remain_c=bin_capacity - item, best_remain_c=bin_capacity - item)
+            bin_tree.insert(index, new_bin_val, bin_tree.get_random_rank())
+            assignment[i] = index
 
             new_bin_free_space = bin_capacity - item
             free_space.append(float(new_bin_free_space))
 
-            bin_index += 1
+            index += 1
         else:
+            # place into existing bin
             assignment[i] = best_bin.key
-            best_bin.val.remaining_capacity -= item
-            free_space[best_bin.key] = float(best_bin.val.remaining_capacity)
+            best_bin.val.remain_c -= item
+            free_space[best_bin.key] = float(best_bin.val.remain_c)
             bin_tree.update_tree(best_bin.key)
             
-    # print(assignment)
-    # print(free_space)
-
-from typing import List
 
 
 def best_fit_decreasing(items: list[float], assignment: list[int], free_space: list[float]):
