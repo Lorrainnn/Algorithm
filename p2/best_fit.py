@@ -1,84 +1,108 @@
-from zipzip_tree import ZipZipTree, Node
+from dataclasses import dataclass
+from typing import Optional
+from zipzip_tree import ZipZipTree, Node, Rank, KeyType
+from decimal import Decimal, getcontext
+
+
+@dataclass
+class BFVal:
+    remaining_capacity: Decimal
+    best_remaining_capacity: Decimal
+
+
+class ZipZipTreeBF(ZipZipTree):
+    def __init__(self, capacity: int):
+        super().__init__(capacity)
+        getcontext().prec = 6
+
+    def update_node(self, node: Node):
+        best_on_left_side = node.left.val.best_remaining_capacity if node.left else Decimal(0)
+        best_on_right_side = node.right.val.best_remaining_capacity if node.right else Decimal(0)
+        myself = node.val.remaining_capacity
+
+        node.val.best_remaining_capacity = max(myself, best_on_left_side, best_on_right_side)
+    
+    def insert(self, key: KeyType, val: BFVal, rank: Rank = None):
+        super().insert(key, val, rank)
+        self.update_tree(key)
+
+    def update_tree(self, key: KeyType):
+        current = self.root
+        stack = []
+
+        while current is not None:
+            stack.append(current)
+            if key < current.key:
+                current = current.left
+            elif key > current.key:
+                current = current.right
+            else:
+                break
+        
+        while stack:
+            node = stack.pop()
+            self.update_node(node)
+    
+    def find_best_fit(self, item_size: Decimal) -> Optional[Node]:
+        best_fit = None
+        best_fit_capacity = Decimal('Infinity')
+        stack = [self.root]
+
+        while stack:
+            current = stack.pop()
+            if current:
+                if current.val.remaining_capacity >= item_size:
+                    if current.val.remaining_capacity < best_fit_capacity:
+                        best_fit = current
+                        best_fit_capacity = current.val.remaining_capacity
+
+                if current.left and current.left.val.best_remaining_capacity >= item_size:
+                    stack.append(current.left)
+
+                if current.right and current.right.val.best_remaining_capacity >= item_size:
+                    stack.append(current.right)
+
+        return best_fit
+
+
+from typing import List
+from decimal import Decimal, getcontext
+
+
+def best_fit(items: List[float], assignment: List[int], free_space: List[float]):
+    # items = hybrid_sort_desc(items)
+    getcontext().prec = 6
+    bin_tree = ZipZipTreeBF(len(items))
+    bin_capacity = Decimal(1.0)
+    bin_index = 0 
+
+    for i, item in enumerate(items):
+        # bin_tree.print_tree()
+        # print(assignment)
+        item = Decimal(str(item))
+        best_bin = bin_tree.find_best_fit(item)
+
+        if best_bin is None:
+            new_bin_val = BFVal(remaining_capacity=bin_capacity - item, best_remaining_capacity=bin_capacity - item)
+            bin_tree.insert(bin_index, new_bin_val, bin_tree.get_random_rank())
+            assignment[i] = bin_index
+
+            new_bin_free_space = bin_capacity - item
+            free_space.append(float(new_bin_free_space))
+
+            bin_index += 1
+        else:
+            assignment[i] = best_bin.key
+            best_bin.val.remaining_capacity -= item
+            free_space[best_bin.key] = float(best_bin.val.remaining_capacity)
+            bin_tree.update_tree(best_bin.key)
+            
+    # print(assignment)
+    # print(free_space)
+
 from typing import List
 
-class Bin:
-    """Represents a bin with remaining capacity."""
-    def __init__(self, remaining_capacity: float):
-        self.remaining_capacity = remaining_capacity
 
-
-def best_fit(
-    items: List[float],
-    assignment: List[int],
-    free_space: List[float],
-    bin_capacity: float = 1.0
-) -> None:
-    """
-    Best-Fit bin packing:
-      - For each item size:
-          • Use tree.best_fit(size) to find the tightest-fitting bin node.
-          • If None, open a new bin; otherwise update the found bin.
-    """
-    # Initialize tree with upper bound on bin count
-    tree = ZipZipTree(len(items))
-    assignment.clear()
-    free_space.clear()
-
-    for size in items:
-        node = tree.best_fit(size)
-        if node is None:
-            # open new bin
-            bin_id = len(free_space)
-            remaining = bin_capacity - size
-            free_space.append(remaining)
-            assignment.append(bin_id)
-            tree.insert(bin_id, Bin(remaining))
-        else:
-            # use existing bin
-            bin_id = node.key
-            assignment.append(bin_id)
-            remaining = node.val.remaining_capacity - size
-            free_space[bin_id] = remaining
-
-            # preserve original rank for rebalance
-            orig_rank = node.rank
-            tree.remove(bin_id)
-            tree.insert(bin_id, Bin(remaining), rank=orig_rank)
-
-
-def best_fit_decreasing(
-    items: List[float],
-    assignment: List[int],
-    free_space: List[float],
-    bin_capacity: float = 1.0
-) -> None:
-    """
-    Best-Fit Decreasing:
-      - Sort items in descending order, then apply best_fit logic.
-    """
-    tree = ZipZipTree(len(items))
-    assignment.clear()
-    free_space.clear()
-
-    # sort items by size descending (keep original index)
-    indexed = sorted(enumerate(items), key=lambda x: x[1], reverse=True)
-    temp_assign = [0] * len(items)
-
-    for orig_idx, size in indexed:
-        node = tree.best_fit(size)
-        if node is None:
-            bin_id = len(free_space)
-            remaining = bin_capacity - size
-            free_space.append(remaining)
-            tree.insert(bin_id, Bin(remaining))
-        else:
-            bin_id = node.key
-            remaining = node.val.remaining_capacity - size
-            free_space[bin_id] = remaining
-            orig_rank = node.rank
-            tree.remove(bin_id)
-            tree.insert(bin_id, Bin(remaining), rank=orig_rank)
-        temp_assign[orig_idx] = bin_id
-
-    # restore assignment in original order
-    assignment.extend(temp_assign)
+def best_fit_decreasing(items: list[float], assignment: list[int], free_space: list[float]):
+    sorted_items = sorted(items, reverse=True)
+    best_fit(sorted_items, assignment, free_space)

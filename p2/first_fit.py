@@ -1,55 +1,102 @@
-from typing import List
+from decimal import Decimal, getcontext
 
-def first_fit(items: List[float], assignment: List[int], free_space: List[float]) -> None:
-    """
-    First Fit bin packing algorithm:
-    - For each item, scan all existing bins in order.
-    - Place the item into the first bin with enough free space.
-    - If no bin can accommodate the item, open a new bin.
+from dataclasses import dataclass
+from zipzip_tree import ZipZipTree, Node, Rank, KeyType
+from decimal import Decimal, getcontext
 
-    Params:
-    - items: sizes of items to pack (each between 0 and 1).
-    - assignment: pre-allocated list; assignment[i] will be set to the bin index for item i.
-    - free_space: initially empty; will be appended with the remaining space of each newly opened bin.
-    """
-    for i, size in enumerate(items):
-        placed = False
-        # Try to place into the first bin that fits
-        for j, space in enumerate(free_space):
-            if space >= size:
-                free_space[j] -= size
-                assignment[i] = j
-                placed = True
+
+
+@dataclass
+class FFVal:
+    remaining_capacity: Decimal
+    best_remaining_capacity: Decimal
+
+class ZipZipTreeFF(ZipZipTree):
+    def __init__(self, capacity: int):
+        super().__init__(capacity)
+        getcontext().prec = 6
+
+    def update_node(self, node: Node):
+        best_on_left_side = node.left.val.best_remaining_capacity if node.left else Decimal(0)
+        best_on_right_side = node.right.val.best_remaining_capacity if node.right else Decimal(0)
+        myself = node.val.remaining_capacity
+
+        node.val.best_remaining_capacity = max(myself,best_on_left_side,best_on_right_side)
+    
+    def insert(self, key: KeyType, val: FFVal, rank: Rank = None):
+        super().insert(key, val,rank)
+        self.update_tree(key) 
+
+    def update_tree(self, key: KeyType):
+        current = self.root
+        stack = []
+
+        while current is not None:
+            stack.append(current)
+            if key < current.key:
+                current = current.left
+            elif key > current.key:
+                current = current.right
+            else:
+                break
+        
+        while stack:
+            node = stack.pop()
+            self.update_node(node)
+        
+    
+    def find_first_fit(self, item_size: float) -> Node:
+        current = self.root
+        best_fit = None
+
+        while current is not None:
+            left_best = current.left.val.best_remaining_capacity if current.left else Decimal(0)
+            right_best = current.right.val.best_remaining_capacity if current.right else Decimal(0)
+
+            # If the left subtree has a bin that can fit the item, go left
+            if left_best >= item_size:
+                current = current.left
+            elif current.val.remaining_capacity >= item_size:
+                # Check the current node's bin
+                best_fit = current
+                break
+            elif right_best >= item_size:
+                # If the right subtree has a bin that can fit the item, go right
+                current = current.right
+            else:
                 break
 
-        # If not placed, open a new bin
-        if not placed:
-            new_idx = len(free_space)
-            assignment[i] = new_idx
-            free_space.append(1.0 - size)
+        return best_fit        
 
 
-def first_fit_decreasing(items: List[float], assignment: List[int], free_space: List[float]) -> None:
-    """
-    First Fit Decreasing bin packing algorithm:
-    - First sort items by size in descending order (preserving original indices for mapping);
-    - Then apply the first_fit algorithm to the sorted list;
-    - The resulting assignment_decr array indicates, for each sorted item, which bin it was placed into.
-    """
-    # Pair each item with its original index and sort by size descending
-    indexed = sorted(enumerate(items), key=lambda x: x[1], reverse=True)
-    sorted_sizes = [size for _, size in indexed]
+def first_fit(items: list[float], assignment: list[int], free_space: list[float]):
+    getcontext().prec = 6
+    bin_tree = ZipZipTreeFF(len(items))
+    bin_capacity = Decimal(1.0)
+    bin_index = 0 
 
-    # Prepare temporary containers for sorted items
-    assignment_decr: List[int] = [0] * len(items)
-    free_space_decr: List[float] = []
+    for i, item in enumerate(items):
+        item = Decimal(str(item))
+        best_bin = bin_tree.find_first_fit(item)
 
-    # Run first fit on the sorted list
-    first_fit(sorted_sizes, assignment_decr, free_space_decr)
+        if best_bin is None:
+            new_bin_val = FFVal(remaining_capacity = bin_capacity - item, best_remaining_capacity = bin_capacity - item)
+            bin_tree.insert(bin_index, new_bin_val, bin_tree.get_random_rank())
+            assignment[i] = bin_index
 
-    # Transfer results back into the caller's free_space and assignment lists
-    free_space.extend(free_space_decr)
-    for sorted_idx, bin_idx in enumerate(assignment_decr):
-        original_idx = indexed[sorted_idx][0]
-        assignment[original_idx] = bin_idx
+            new_bin_free_space = bin_capacity - item
+            free_space.append(float(new_bin_free_space))
+
+            bin_index += 1
+        else:
+            assignment[i] = best_bin.key
+            best_bin.val.remaining_capacity = best_bin.val.remaining_capacity - item
+
+            free_space[best_bin.key] = float(best_bin.val.remaining_capacity)
+            bin_tree.update_tree(best_bin.key)
+
+
+def first_fit_decreasing(items: list[float], assignment: list[int], free_space: list[float]):
+    sorted_items = sorted(items, reverse=True)
+    first_fit(sorted_items, assignment, free_space)
 

@@ -54,22 +54,6 @@ class ZipZipTree:
         # Uniform rank
         uniform = random.randint(0, max(0, int(math.log2(self.capacity) ** 3) - 1))
         return Rank(count, uniform)
-    
-    def best_fit(self, size: float) -> Optional[Node]:
-        """Return node whose remaining_capacity >= size but is minimal among those."""
-        best: Optional[Node] = None
-        def dfs(node: Optional[Node]):
-            nonlocal best
-            if node is None:
-                return
-            cap = getattr(node.val, 'remaining_capacity', None)
-            if cap is not None and cap >= size:
-                if best is None or cap < getattr(best.val, 'remaining_capacity'):
-                    best = node
-            dfs(node.left)
-            dfs(node.right)
-        dfs(self.root)
-        return best
 
 
     #recheck Pseudocode code.. ok
