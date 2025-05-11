@@ -27,11 +27,9 @@ class ZipZipTree(Generic[KeyType, ValType]):
             self.right: Optional[ZipZipTree._Node] = None
 
     def __init__(self, capacity: int):
-        # maximum uniform rank (inclusive)
-        max_r = int(math.log(capacity) ** 3) - 1
-        self._max_uniform = max(0, max_r)
         self.root: Optional[ZipZipTree._Node] = None
         self._size = 0
+        self.capacity = capacity
 
     def get_random_rank(self) -> Rank:
         # get_random_rank(): returns a random node rank, chosen independently from:
