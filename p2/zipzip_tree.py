@@ -2,177 +2,201 @@
 # each file that uses a Zip Tree should import it from this file
 
 from __future__ import annotations
+
+from typing import TypeVar, Optional
 from dataclasses import dataclass
 
-import math
-import random
-from typing import Optional, TypeVar, Generic, Tuple
-from dataclasses import dataclass
+import math, random
 
 KeyType = TypeVar('KeyType')
 ValType = TypeVar('ValType')
 
-@dataclass
+@dataclass(order=True)
 class Rank:
+    #first geo then uni
     geometric_rank: int
     uniform_rank: int
 
+class Node:
+    def __init__(self, key: KeyType, val: ValType, rank: Rank):
+        self.key = key
+        self.val = val
+        self.rank = rank
+        self.left: Optional[Node] = None
+        self.right: Optional[Node] = None
+    
+    def __lt__(self, other: Node) -> bool:
+        if self.rank != other.rank:
+            return self.rank < other.rank
+        return self.key < other.key
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Node):
+            return NotImplemented
+        return self.rank == other.rank and self.key == other.key
 
 class ZipZipTree:
-    class _Node:
-        def __init__(self, key: KeyType, val: ValType, rank: Rank):
-            self.key = key
-            self.val = val
-            self.rank = rank
-            self.left: Optional[ZipZipTree._Node] = None
-            self.right: Optional[ZipZipTree._Node] = None
-        
+    # ZipZipTree(): constructs the zip-zip tree with a specific capacity.
     def __init__(self, capacity: int):
-        self.root: Optional[ZipZipTree._Node] = None
-        self._size = 0
+        self.root: Optional[Node] = None
         self.capacity = capacity
+        self.size = 0
 
     def get_random_rank(self) -> Rank:
         # get_random_rank(): returns a random node rank, chosen independently from:
 #           a geometric distribution of mean 1 and,
 #           a uniform distribution of integers from 0 to log(capacity)^3 - 1 (log capacity cubed minus 1).
-        # geometric distribution p=1/2
-        g = 0
-        while random.random() < 0.5:
-            g += 1
-        # compute uniform bound per call
-        max_r = int(math.log(self.capacity) ** 3) - 1
-        upper = max(0, max_r)
-        u = random.randint(0, upper)
-        return Rank(g, u)
 
+        # Geometric ---> mean = 1
+        count = 0
+        while random.random() < 0.5:
+            count += 1
+        # Uniform rank
+        uniform = random.randint(0, max(0, int(math.log2(self.capacity) ** 3) - 1))
+        return Rank(count, uniform)
+    
+    def best_fit(self, size: float) -> Optional[Node]:
+        """Return node whose remaining_capacity >= size but is minimal among those."""
+        best: Optional[Node] = None
+        def dfs(node: Optional[Node]):
+            nonlocal best
+            if node is None:
+                return
+            cap = getattr(node.val, 'remaining_capacity', None)
+            if cap is not None and cap >= size:
+                if best is None or cap < getattr(best.val, 'remaining_capacity'):
+                    best = node
+            dfs(node.left)
+            dfs(node.right)
+        dfs(self.root)
+        return best
+
+
+    #recheck Pseudocode code.. ok
     def insert(self, key: KeyType, val: ValType, rank: Rank = None):
         # insert(): inserts item with parameter key, value, and rank into tree.
 #           if rank is not provided, a random rank should be selected by using get_random_rank().
         if rank is None:
             rank = self.get_random_rank()
-        x = ZipZipTree._Node(key, val, rank)
-        # Phase 1: climb until heap order ok
+
+        new_node = Node(key, val, rank)
         cur = self.root
         prev = None
+
+        
+        # Find where to insert --> find node with just higher ranking
         while cur is not None and (
-            (x.rank.geometric_rank, x.rank.uniform_rank) < (cur.rank.geometric_rank, cur.rank.uniform_rank)
-            or ((x.rank.geometric_rank, x.rank.uniform_rank) == (cur.rank.geometric_rank, cur.rank.uniform_rank)
-                and x.key < cur.key)
+            rank.geometric_rank < cur.rank.geometric_rank
+            or (rank.geometric_rank == cur.rank.geometric_rank and rank.uniform_rank < cur.rank.uniform_rank)
+            or (rank.geometric_rank == cur.rank.geometric_rank and rank.uniform_rank == cur.rank.uniform_rank and key > cur.key)
         ):
-     
             prev = cur
-            cur = cur.left if x.key < cur.key else cur.right
-        # attach x
+            if key < cur.key:
+                cur = cur.left
+            else:
+                cur = cur.right
+
         if prev is None:
-            self.root = x
-        elif x.key < prev.key:
-            prev.left = x
+            #highest ranking -> should be used as root
+            self.root = new_node
+        elif new_node.key < prev.key:
+            prev.left = new_node
         else:
-            prev.right = x
-        # if leaf, done
+            prev.right = new_node
+
+        # no push subtree
         if cur is None:
-            x.left = x.right = None
-            self._size += 1
+            new_node.left = new_node.right = None
+            self.size += 1
             return
-        # splice subtree
-        if x.key < cur.key:
-            x.left = cur.left
-            x.right = cur
-            cur.left = None
+
+        # push subtree
+        if key < cur.key:
+            new_node.right = cur
         else:
-            x.right = cur.right
-            x.left = cur
-            cur.right = None
-        # Phase 2: zip-adjust
-        prev = x
-        while True:
+            new_node.left = cur
+
+        prev = new_node
+
+        #Second phase: Reattach (recheck paper)
+        while cur is not None:
             fix = prev
-            if cur is None:
-                break
-            if cur.key < x.key:
-                # move right
-                while cur is not None and cur.key < x.key:
+
+            #right find
+            if cur.key < key:
+                #repeat prev<-cur;cur<-cur.right
+                while cur is not None and cur.key <= key:
                     prev = cur
                     cur = cur.right
+            #left find
             else:
-                # move left
-                while cur is not None and cur.key > x.key:
+                while cur is not None and cur.key >= key:
+                    #repeat prev<-cur;cur<-cur.left
                     prev = cur
-                    cur = cur.left
-            if cur is None:
-                # reattach
-                if prev.key < x.key:
-                    prev.right = None
-                else:
-                    prev.left = None
-                break
-            # reattach cur under fix
-            if fix.key < x.key:
-                fix.right = cur
-            else:
+                    cur = cur.left      
+            if fix.key > key or (fix.key == new_node.key and prev.key > key):
                 fix.left = cur
-        self._size += 1
+            else:
+                fix.right = cur
+
+        self.size += 1
 
     def remove(self, key: KeyType):
         # remove(): removes item with parameter key from tree.
 #           you can assume that the item exists in the tree.
-        # find node x and its parent
+        if self.root is None:
+            return
+
         cur = self.root
         prev = None
-        while cur is not None and cur.key != key:
-            prev = cur
-            cur = cur.left if key < cur.key else cur.right
-        if cur is None:
-            return  # or raise
-        left, right = cur.left, cur.right
-        # empty one side
-        if left is None or right is None:
-            child = left if right is None else right
-            if prev is None:
-                self.root = child
-            elif cur.key < prev.key:
-                prev.left = child
-            else:
-                prev.right = child
-        else:
-            # zip-merge left and right
-            a, b = left, right
-            merge_root = None
-            # find root of merge
-            if (a.rank.geometric_rank, a.rank.uniform_rank) < (b.rank.geometric_rank, b.rank.uniform_rank) \
-            or ((a.rank.geometric_rank, a.rank.uniform_rank) == (b.rank.geometric_rank, b.rank.uniform_rank)
-        and a.key < b.key):
-                merge_root = a
-            else:
-                merge_root = b
 
-            if merge_root is a:
-                # attach b into a.right
-                cur_a = a
-                while cur_a.right is not None and (
-                    (cur_a.right.rank.geometric_rank, cur_a.right.rank.uniform_rank) <
-                    (b.rank.geometric_rank, b.rank.uniform_rank)
-                ):
-                    cur_a = cur_a.right
-                cur_a.right = b
+        # find delete node 
+        while cur is not None and key != cur.key:
+            prev = cur
+            if key < cur.key:
+                cur = cur.left 
             else:
-                # attach a into b.left
-                cur_b = b
-                while cur_b.left is not None and (
-                    (cur_b.left.rank.geometric_rank, cur_b.left.rank.uniform_rank) <=
-                    (a.rank.geometric_rank, a.rank.uniform_rank)
-                ):
-                    cur_b = cur_b.left
-                cur_b.left = a
-            # attach merge_root
-            if prev is None:
-                self.root = merge_root
-            elif key < prev.key:
-                prev.left = merge_root
+                cur = cur.right
+        #not exist
+        if cur is None:
+            return  
+        #exist
+        left = cur.left
+        right = cur.right
+
+    
+        if left is None:
+            cur = right
+        elif right is None:
+            cur = left
+        elif left>right:
+            cur = left
+        else:
+            cur = right
+
+        # update parent's node
+        if self.root.key == key:
+            self.root = cur
+        elif key < prev.key:
+            prev.left = cur
+        else:
+            prev.right = cur
+
+        # zip back
+        while left is not None and right is not None:
+            if left>right:
+                while left is not None and left>right:
+                    prev = left
+                    left = left.right
+                prev.right = right
             else:
-                prev.right = merge_root
-        self._size -= 1
+                while right is not None and left<right:
+                    prev = right
+                    right = right.left
+                prev.left = left
+
+        self.size -= 1
+
 
     def find(self, key: KeyType) -> ValType:
         # find(): returns the value of item with parameter key.
@@ -181,29 +205,45 @@ class ZipZipTree:
         while cur is not None:
             if key == cur.key:
                 return cur.val
-            cur = cur.left if key < cur.key else cur.right
-       
+            if key < cur.key:
+                #smaller go left
+                cur = cur.left 
+            else:
+                #larger go right
+                cur = cur.right
+              
+        return None
 
     def get_size(self) -> int:
         # get_size(): returns the number of nodes in the tree.
-        return self._size
+        return self.size
 
     def get_height(self) -> int:
-        def _h(n):
-            return -1 if n is None else 1 + max(_h(n.left), _h(n.right))
-        return _h(self.root)
+        # get_height(): returns the height of the tree.
+        return self._get_height_rec(self.root)
+
+    def _get_height_rec(self, node: Optional[Node]) -> int:
+        if node is None:
+            return -1
+        return max(self._get_height_rec(node.left), self._get_height_rec(node.right)) + 1
 
     def get_depth(self, key: KeyType) -> int:
-        cur = self.root
-        depth = 0
-        while cur is not None:
-            if key == cur.key:
-                return depth
-            elif key < cur.key:
-                cur = cur.left
-            else:
-                cur = cur.right
-            depth += 1
-        raise KeyError(f"Key {key} not found")
+        # get_depth(): returns the depth of the item with parameter key.
+#              you can assume that the item exists in the tree.
+        return self._get_depth_rec(self.root, key, 0)
 
-       
+    def _get_depth_rec(self, node: Optional[Node], key: KeyType, depth: int) -> int:
+        if node is None:
+            return -1
+        if key == node.key:
+            return depth
+        if key < node.key:
+            #smaller go left
+            return self._get_depth_rec(node.left, key, depth + 1)
+        else:
+            #larger go right
+            return self._get_depth_rec(node.right, key, depth + 1)
+
+	# feel free to define new methods in addition to the above
+	# fill in the definitions of each required member function (above),
+	# and for any additional member functions you define

@@ -3,19 +3,25 @@ from typing import List
 def first_fit(items: List[float], assignment: List[int], free_space: List[float]) -> None:
     """
     First Fit bin packing algorithm:
-    - For each item, scan all existing bins in order,
-      place it into the first bin with free_space[j] >= size;
-    - If no existing bin can accommodate the item, open a new bin.
+    - For each item, scan all existing bins in order.
+    - Place the item into the first bin with enough free space.
+    - If no bin can accommodate the item, open a new bin.
+
+    Params:
+    - items: sizes of items to pack (each between 0 and 1).
+    - assignment: pre-allocated list; assignment[i] will be set to the bin index for item i.
+    - free_space: initially empty; will be appended with the remaining space of each newly opened bin.
     """
     for i, size in enumerate(items):
         placed = False
         # Try to place into the first bin that fits
-        for j in range(len(free_space)):
-            if free_space[j] >= size:
+        for j, space in enumerate(free_space):
+            if space >= size:
                 free_space[j] -= size
                 assignment[i] = j
                 placed = True
                 break
+
         # If not placed, open a new bin
         if not placed:
             new_idx = len(free_space)

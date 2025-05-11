@@ -1,52 +1,84 @@
-
+from zipzip_tree import ZipZipTree, Node
 from typing import List
 
-def best_fit(items: List[float], assignment: List[int], free_space: List[float]) -> None:
+class Bin:
+    """Represents a bin with remaining capacity."""
+    def __init__(self, remaining_capacity: float):
+        self.remaining_capacity = remaining_capacity
+
+
+def best_fit(
+    items: List[float],
+    assignment: List[int],
+    free_space: List[float],
+    bin_capacity: float = 1.0
+) -> None:
     """
-    Best Fit bin packing algorithm:
-    - For each item, scan all existing bins,
-      find the bin j with free_space[j] >= size that leaves the smallest remaining space (tightest fit);
-    - If no suitable bin is found, open a new bin.
+    Best-Fit bin packing:
+      - For each item size:
+          • Use tree.best_fit(size) to find the tightest-fitting bin node.
+          • If None, open a new bin; otherwise update the found bin.
     """
-    for i, size in enumerate(items):
-        best_j = None
-        best_remain = float('inf')  # Initialize to infinity to find the minimal leftover
-        for j in range(len(free_space)):
-            remain = free_space[j] - size
-            if remain >= 0 and remain < best_remain:
-                best_remain = remain
-                best_j = j
-        if best_j is None:
-            # Open a new bin
-            new_idx = len(free_space)
-            assignment[i] = new_idx
-            free_space.append(1.0 - size)
+    # Initialize tree with upper bound on bin count
+    tree = ZipZipTree(len(items))
+    assignment.clear()
+    free_space.clear()
+
+    for size in items:
+        node = tree.best_fit(size)
+        if node is None:
+            # open new bin
+            bin_id = len(free_space)
+            remaining = bin_capacity - size
+            free_space.append(remaining)
+            assignment.append(bin_id)
+            tree.insert(bin_id, Bin(remaining))
         else:
-            # Place in the best-fit bin
-            assignment[i] = best_j
-            free_space[best_j] -= size
+            # use existing bin
+            bin_id = node.key
+            assignment.append(bin_id)
+            remaining = node.val.remaining_capacity - size
+            free_space[bin_id] = remaining
+
+            # preserve original rank for rebalance
+            orig_rank = node.rank
+            tree.remove(bin_id)
+            tree.insert(bin_id, Bin(remaining), rank=orig_rank)
 
 
-def best_fit_decreasing(items: List[float], assignment: List[int], free_space: List[float]) -> None:
+def best_fit_decreasing(
+    items: List[float],
+    assignment: List[int],
+    free_space: List[float],
+    bin_capacity: float = 1.0
+) -> None:
     """
-    Best Fit Decreasing bin packing algorithm:
-    - First, sort items in descending order (while preserving original indices),
-    - Then apply the standard best_fit algorithm.
+    Best-Fit Decreasing:
+      - Sort items in descending order, then apply best_fit logic.
     """
-    # Pair items with their original indices and sort by size descending
+    tree = ZipZipTree(len(items))
+    assignment.clear()
+    free_space.clear()
+
+    # sort items by size descending (keep original index)
     indexed = sorted(enumerate(items), key=lambda x: x[1], reverse=True)
-    sorted_sizes = [size for _, size in indexed]
+    temp_assign = [0] * len(items)
 
-    # Prepare temporary containers for the sorted items
-    assignment_decr: List[int] = [0] * len(items)
-    free_space_decr: List[float] = []
+    for orig_idx, size in indexed:
+        node = tree.best_fit(size)
+        if node is None:
+            bin_id = len(free_space)
+            remaining = bin_capacity - size
+            free_space.append(remaining)
+            tree.insert(bin_id, Bin(remaining))
+        else:
+            bin_id = node.key
+            remaining = node.val.remaining_capacity - size
+            free_space[bin_id] = remaining
+            orig_rank = node.rank
+            tree.remove(bin_id)
+            tree.insert(bin_id, Bin(remaining), rank=orig_rank)
+        temp_assign[orig_idx] = bin_id
 
-    # Run best fit on the sorted list
-    best_fit(sorted_sizes, assignment_decr, free_space_decr)
-
-    # Transfer results back to the original assignment list
-    free_space.extend(free_space_decr)
-    for sorted_idx, bin_idx in enumerate(assignment_decr):
-        original_idx = indexed[sorted_idx][0]
-        assignment[original_idx] = bin_idx
-
+    # restore assignment in original order
+    assignment.extend(temp_assign)
