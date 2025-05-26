@@ -45,9 +45,16 @@ class Graph:
 		else:
 			return []
 	
+	def get_degree(self, node: int):
+		return len(self.get_neighbors(node))
+	
 	def get_nodes(self):
 		return list(self.ajencency_list.keys())
-	
+
+
+			
+
+
 
 	def get_maximum_distance(self, node: int):
 		"""
