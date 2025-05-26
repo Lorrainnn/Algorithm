@@ -7,6 +7,8 @@
 
 
 # get_clustering_coefficient(): return the graph's global clustering coefficient.
+
+
 # get_degree_distribution(): returns a dictionary representing the degree distribution of the graph.
 #                            the keys are the degree, and the values is the number of nodes with that
 #                            degree.
@@ -15,10 +17,11 @@ from graph import Graph
 import random
 
 def get_diameter(graph: Graph) -> int:
+	# Heuristic Idea 2
 	start = random.choice(graph.get_nodes())
 	D_max = float('-inf')
 	node, distance = graph.get_maximum_distance(start)
-	
+
 	while distance > D_max:
 		D_max = distance
 		node, distance = graph.get_maximum_distance(node)

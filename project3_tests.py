@@ -59,6 +59,10 @@ def graph_algorithm_tests():
 	print(f'get_clustering_coefficient(): {requirements.get_clustering_coefficient(graph)}, Expected: 0.4')
 	print(f'get_degree_distribution(): {requirements.get_degree_distribution(graph)}, Expected: { {2: 5, 3: 3, 4: 1, 5: 1} }')
 
+def self_defined_algorithm_test():
+	graph = requirements.Graph(4, {(1, 2), (1, 4), (2, 4), (3, 4)})
+	print(f'get_diameter(): {requirements.get_diameter(graph)}, Expected: 2')
 if __name__ == '__main__':
 	graph_tests()
 	graph_algorithm_tests()
+	self_defined_algorithm_test()

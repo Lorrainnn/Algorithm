@@ -14,6 +14,7 @@
 
 
 from collections.abc import Iterable
+from collections import deque
 
 class Graph:
 	def __init__(self, num_nodes: int, edges: Iterable[tuple[int, int]]):
@@ -45,7 +46,7 @@ class Graph:
 			return []
 	
 	def get_nodes(self):
-		return self.ajencency_list.keys()
+		return list(self.ajencency_list.keys())
 	
 
 	def get_maximum_distance(self, node: int):
@@ -57,7 +58,7 @@ class Graph:
 		def add_level(node:Iterable[int],level):
 			lista = []
 			for n in node:
-				lista.append(n,level)
+				lista.append((n,level))
 			return lista
 
 
@@ -68,7 +69,7 @@ class Graph:
 		distance = {}
 		distance[node] = 0
 
-		queue = []
+		queue = deque()
 		level = 1
 		queue.extend(add_level(self.get_neighbors(node),level))
 		#to node 1: queue [(2,1),(4,1)]
