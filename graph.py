@@ -43,6 +43,54 @@ class Graph:
 			return self.ajencency_list[node]
 		else:
 			return []
+	
+	def get_nodes(self):
+		return self.ajencency_list.keys()
+	
+
+	def get_maximum_distance(self, node: int):
+		"""
+		return max distance of specific node
+		"""
+
+		
+		def add_level(node:Iterable[int],level):
+			lista = []
+			for n in node:
+				lista.append(n,level)
+			return lista
+
+
+		#init: viisted/distance/queue
+		visited = set()
+		visited.add(node)
+
+		distance = {}
+		distance[node] = 0
+
+		queue = []
+		level = 1
+		queue.extend(add_level(self.get_neighbors(node),level))
+		#to node 1: queue [(2,1),(4,1)]
+
+		max_node = node
+		max_distance = 0
+
+		while queue:
+			#choose the neighbour we process
+			n, level = queue.popleft()
+			if n not in visited:
+				visited.add(n)
+				distance[n] = level
+				queue.extend(add_level(self.get_neighbors(n),level+1))
+				
+				#find max
+				if distance[n]>=max_distance:
+					max_distance = distance[n]
+					max_node = n
+		return max_node, max_distance
+
+			
 
 	# feel free to define new methods in addition to the above
 	# fill in the definitions of each required member function (above),
