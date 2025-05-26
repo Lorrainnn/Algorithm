@@ -17,6 +17,10 @@ from collections.abc import Iterable
 
 class Graph:
 	def __init__(self, num_nodes: int, edges: Iterable[tuple[int, int]]):
+		#check boundry?
+		if num_nodes<0:
+			raise ValueError
+		
 		self._num_nodes = num_nodes
 		self._num_edges = len(edges)
 		self.update_ajencency_list(edges)
@@ -24,8 +28,8 @@ class Graph:
 	def update_ajencency_list(self, edges: Iterable[tuple[int, int]]):
 		self.ajencency_list = {}
 		for u, v in edges:
-			self.adj_list.setdefault(u, []).append(v)
-			self.adj_list.setdefault(v, []).append(u)
+			self.ajencency_list.setdefault(u, []).append(v)
+			self.ajencency_list.setdefault(v, []).append(u)
 
 
 	def get_num_nodes(self) -> int:
@@ -35,7 +39,10 @@ class Graph:
 		return self._num_edges
 
 	def get_neighbors(self, node: int) -> Iterable[int]:
-		raise NotImplementedError
+		if node in self.ajencency_list:
+			return self.ajencency_list[node]
+		else:
+			return []
 
 	# feel free to define new methods in addition to the above
 	# fill in the definitions of each required member function (above),
