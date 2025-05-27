@@ -52,7 +52,7 @@ class Graph:
 		return list(self.ajencency_list.keys())
 
 
-		
+
 
 
 	def get_maximum_distance(self, node: int):

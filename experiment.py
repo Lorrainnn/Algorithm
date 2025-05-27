@@ -1,1 +1,0 @@
-from Er import generate_Erdos
