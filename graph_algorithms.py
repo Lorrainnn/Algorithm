@@ -33,7 +33,8 @@ def get_degree_distribution(graph: Graph) -> dict[int, int]:
 	all_nodes = graph.get_nodes()
 	distribution = {}
 	for n in all_nodes:
-		distribution[n] = len(graph.get_neighbors(n))
+		deg = len(graph.get_neighbors(n))
+		distribution[deg] = distribution.get(deg, 0) + 1
 	return distribution
 
 
@@ -47,8 +48,6 @@ def get_clustering_coefficient(graph: Graph) -> float:
 
 	#numerator - graph degeneracy
 
-	info = get_degree_distribution(graph)
-
 
 def compute_degeneracy(graph: Graph):
 	#1
@@ -56,23 +55,22 @@ def compute_degeneracy(graph: Graph):
 	HL = set()
 
 	#2
-	dv = get_degree_distribution(graph)
+	dv = {v: len(graph.get_neighbors(v)) for v in graph.get_nodes()}
 
 	#3 degree bucket
 	max_deg = max(dv.values())
-	D = [[] for _ in range(max_deg + 1)]
+	D = [set() for _ in range(max_deg + 1)]
 	for v, deg in dv.items():
-		D[deg].append(v)
+		D[deg].add(v)
 	
 	#4
-	n = graph.get_num_nodes()
-	Nv = {v: [] for v in range(n)}
+	Nv = {v: [] for v in graph.get_nodes()}
 
 	#5
 	k=0
 
 	#6
-	for _ in range(n):
+	for _ in range(graph.get_num_nodes()):
 
 		for i, bucket in enumerate(D):
 			if bucket:
@@ -84,22 +82,24 @@ def compute_degeneracy(graph: Graph):
 		L.insert(0, v)
 		HL.add(v)
 
+		#last section
 		for w in graph.get_neighbors(v):
 			if w not in HL:
+
 				old = dv[w]
-				new = dv[w] - 1
+				new = old - 1
 				dv[w] = new
 
                 # Move w to the cell of D corresponding to the new value of dw 
-                D[old].remove(w)
-                if new >= len(D):
-                    D.extend([] for _ in range(new - len(D) + 1))
-                D[new].append(w)
+				D[old].discard(w)
+				if new >= len(D):
+					D.extend(set() for _ in range(new - len(D) + 1))
+				D[new].add(w)
 
                 # add w to N_v[v]
-                N_v[v].append(w)
-
-    return k, L, N_v
+				Nv[v].append(w)
+				
+	return Nv
 
 
 	
