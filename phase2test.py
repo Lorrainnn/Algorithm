@@ -3,6 +3,8 @@ import random
 from graph import Graph
 from requirements import *
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy.stats import linregress
 
 def generate_Erdos(n):
     """
@@ -39,8 +41,8 @@ def generate_Bara(n,d=5):
             M[2*(v*d+i) + 1] = M[r]   
             
     E = set()
-    for i in range(0, 2 * n * d):
-        E.add((M[2*i], M[2*i]))
+    for i in range(n * d-1):
+        E.add((M[2*i], M[2*i+1]))
 
     return Graph(n, E)
 
@@ -54,7 +56,7 @@ if __name__=="__main__":
     TRIALS = 3
     random.seed(42)
     student_id = '1'
-    # ------------------ Plot avg diameter / clustering ------------------
+    #student_id = '2'
 
     diameters = []
     clustering = []
@@ -72,12 +74,14 @@ if __name__=="__main__":
 
     plt.figure(figsize=(10, 4))
 
+    #diameter
     plt.subplot(1, 2, 1)
     plt.semilogx(Ns, diameters, marker='o')
     plt.title("Average Diameter vs n")
     plt.xlabel("n (log scale)")
     plt.ylabel("Avg Diameter")
 
+    #clustering
     plt.subplot(1, 2, 2)
     plt.semilogx(Ns, clustering, marker='o', color='orange')
     plt.title("Avg Clustering Coefficient vs n")
@@ -88,8 +92,8 @@ if __name__=="__main__":
     plt.savefig("fig_diameter_clustering.png")
     plt.close()
 
-    # ------------------ Plot degree distribution ------------------
 
+    # degree distribution
     for n in Ns:
         g = get_random_graph(student_id, n)
         dist = get_degree_distribution(g)
@@ -110,6 +114,19 @@ if __name__=="__main__":
         plt.title(f"Degree Dist (log-log), n={n}")
         plt.xlabel("log(Degree)")
         plt.ylabel("log(Count)")
+
+
+        log_deg = np.log10(degrees)
+        log_cnt = np.log10(counts)
+
+        slope, intercept, *_ = linregress(log_deg, log_cnt)
+
+     
+        annotation_text = f"y ≈ {slope:.2f}·x + {intercept:.2f}"
+        plt.annotate(annotation_text,
+             xy=(0.05, 0.05), xycoords='axes fraction',
+             fontsize=10, bbox=dict(boxstyle="round", fc="w", ec="gray"))
+
 
         plt.tight_layout()
         plt.savefig(f"fig_degdist_n{n}.png")
