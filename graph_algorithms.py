@@ -47,6 +47,22 @@ def get_clustering_coefficient(graph: Graph) -> float:
 		denominator+=val*(val-1)/2
 
 	#numerator - graph degeneracy
+	Nv = compute_degeneracy(graph)
+	triangle_count = 0
+	neighbor_sets = {v: set(graph.get_neighbors(v)) for v in graph.get_nodes()}
+	for v in Nv:
+		neighbors_before = Nv[v]
+		
+
+		for i in range(len(neighbors_before)):
+			u = neighbors_before[i]
+			for j in range(i + 1, len(neighbors_before)):
+				w = neighbors_before[j]
+				if w in neighbor_sets[u]:
+					triangle_count+=1
+	
+	return 3*triangle_count/denominator
+
 
 
 def compute_degeneracy(graph: Graph):
@@ -75,7 +91,9 @@ def compute_degeneracy(graph: Graph):
 		for i, bucket in enumerate(D):
 			if bucket:
 				break
-		
+		#else:
+			#raise RuntimeError("Buggy -> All degree buckets are empty")
+	
 		k=max(k,i)
 
 		v = D[i].pop()
@@ -96,10 +114,12 @@ def compute_degeneracy(graph: Graph):
 					D.extend(set() for _ in range(new - len(D) + 1))
 				D[new].add(w)
 
-                # add w to N_v[v]
+                # add w to Nv[v]
 				Nv[v].append(w)
 				
+	#return k, L, Nv
 	return Nv
+
 
 
 	
