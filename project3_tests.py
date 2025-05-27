@@ -63,6 +63,7 @@ def self_defined_algorithm_test():
 	graph = requirements.Graph(4, {(0, 1), (0, 3), (1, 3), (2, 3)})
 	print(f'get_diameter(): {requirements.get_diameter(graph)}, Expected: 2')
 	print(requirements.compute_degeneracy(graph))
+	
 if __name__ == '__main__':
 	graph_tests()
 	graph_algorithm_tests()
