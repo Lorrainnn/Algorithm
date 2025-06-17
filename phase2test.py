@@ -51,12 +51,12 @@ def get_random_graph(student_id: str, n: int) -> Graph:
     return generate_Erdos(n) if odd else generate_Bara(n)
 
 
-if __name__=="__main__":
-    Ns = [1000, 10000, 100000]
+if __name__ == "__main__":
+    Ns = [1000, 3000, 10000, 30000, 100000]
     TRIALS = 3
-    random.seed(42)
+    
     student_id = '1'
-    #student_id = '2'
+    # student_id = '2'
 
     diameters = []
     clustering = []
@@ -71,63 +71,42 @@ if __name__=="__main__":
         diameters.append(diam_sum / TRIALS)
         clustering.append(clust_sum / TRIALS)
 
+    # 转 numpy
+    Ns_np = np.array(Ns)
+    log_Ns = np.log(Ns_np)
 
+    # Diameter linear fit on log(N)
+    slope_diam, intercept_diam, r_value_diam, _, _ = linregress(log_Ns, diameters)
+    fit_diam = intercept_diam + slope_diam * log_Ns
+
+    # Clustering theory curve (for ER)
+    theory_clust = (2 * np.log(Ns_np)) / Ns_np
+
+    # Plot
     plt.figure(figsize=(10, 4))
 
-    #diameter
+    # Diameter subplot
     plt.subplot(1, 2, 1)
-    plt.semilogx(Ns, diameters, marker='o')
+    plt.semilogx(Ns, diameters, marker='o', label='Avg Diameter')
+    plt.semilogx(Ns, fit_diam, linestyle='--', color='red',
+                 label=f'Best Fit: y = {slope_diam:.2f}·log(n) + {intercept_diam:.2f}, R²={r_value_diam**2:.3f}')
     plt.title("Average Diameter vs n")
     plt.xlabel("n (log scale)")
     plt.ylabel("Avg Diameter")
+    plt.legend()
+    plt.grid(ls='--', alpha=0.5)
 
-    #clustering
+    # Clustering subplot
     plt.subplot(1, 2, 2)
-    plt.semilogx(Ns, clustering, marker='o', color='orange')
+    plt.semilogx(Ns, clustering, marker='o', color='orange', label='Avg Clustering')
+    if student_id == '1':
+        plt.semilogx(Ns, theory_clust, linestyle='--', color='blue', label='Theory: 2ln(n)/n')
     plt.title("Avg Clustering Coefficient vs n")
     plt.xlabel("n (log scale)")
     plt.ylabel("Avg Clustering")
+    plt.legend()
+    plt.grid(ls='--', alpha=0.5)
 
     plt.tight_layout()
     plt.savefig("fig_diameter_clustering.png")
     plt.close()
-
-
-    # degree distribution
-    for n in Ns:
-        g = get_random_graph(student_id, n)
-        dist = get_degree_distribution(g)
-        degrees = list(dist.keys())
-        counts = [dist[d] for d in degrees]
-
-        # Save lin-lin and log-log
-        plt.figure(figsize=(10, 4))
-
-        plt.subplot(1, 2, 1)
-        plt.scatter(degrees, counts, s=10)
-        plt.title(f"Degree Dist (lin-lin), n={n}")
-        plt.xlabel("Degree")
-        plt.ylabel("Count")
-
-        plt.subplot(1, 2, 2)
-        plt.loglog(degrees, counts, marker='o', linestyle='none')
-        plt.title(f"Degree Dist (log-log), n={n}")
-        plt.xlabel("log(Degree)")
-        plt.ylabel("log(Count)")
-
-
-        log_deg = np.log10(degrees)
-        log_cnt = np.log10(counts)
-
-        slope, intercept, *_ = linregress(log_deg, log_cnt)
-
-     
-        annotation_text = f"y ≈ {slope:.2f}·x + {intercept:.2f}"
-        plt.annotate(annotation_text,
-             xy=(0.05, 0.05), xycoords='axes fraction',
-             fontsize=10, bbox=dict(boxstyle="round", fc="w", ec="gray"))
-
-
-        plt.tight_layout()
-        plt.savefig(f"fig_degdist_n{n}.png")
-        plt.close()
